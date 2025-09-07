@@ -172,6 +172,30 @@ def to_spark_metadata(field: Field) -> dict[str, str]:
     metadata = {}
     if field.description:
         metadata["comment"] = field.description
+    # Map any custom field config ending with "api_name" into Spark metadata
+    # Example: config{"spark_api_name": "bleah"} -> metadata{"spark_api_name": "bleah"}
+    if field.config:
+        for key, value in field.config.items():
+            if (
+                isinstance(key, str)
+                and key.lower().endswith("api_name")
+                and value is not None
+            ):
+                metadata[key] = str(value)
+        # Map boolean 'technical' flag into Spark metadata (keep as boolean)
+        if "technical" in field.config:
+            tech_val = field.config.get("technical")
+            if isinstance(tech_val, bool):
+                metadata["technical"] = tech_val
+            elif isinstance(tech_val, str):
+                metadata["technical"] = tech_val.strip().lower() in (
+                    "true",
+                    "1",
+                    "yes",
+                    "y",
+                )
+            else:
+                metadata["technical"] = bool(tech_val)
 
     return metadata
 
